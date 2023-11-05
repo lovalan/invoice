@@ -1,0 +1,46 @@
+name: Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Réglez ceci sur la branche que vous souhaitez surveiller
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Build with Maven
+      run: mvn clean package
+
+  deploy_docker:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Login to Docker Hub
+      run: docker login -u ${{ secrets.lovalan }} -p ${{ secrets.thegamesh }}
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t lovalan/invoice:latest .
+        docker push lovalan/invoice:latest
+
+  deploy_with_ansible:
+    needs: deploy_docker
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Install Ansible
+      run: |
+        sudo apt update
+        sudo apt install -y ansible
+
+    - name: Run Ansible Playbook
+      run: ansible-playbook -i inventory.ini your_playbook.yml
